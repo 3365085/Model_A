@@ -276,6 +276,7 @@ class MonitorEngine:
         self.capture_thread: threading.Thread | None = None
         self.process_thread: threading.Thread | None = None
         self.preview_thread: threading.Thread | None = None
+        self.thread_join_timeout_s = 2.0
         self.preview_bus: PreviewBus | None = None
         self.detection_bus: DetectionBus | None = None
         self.run_id = 0
@@ -606,11 +607,20 @@ class MonitorEngine:
             return dict(self.display_options)
 
     def stop(self) -> None:
+        threads = [thread for thread in (self.capture_thread, self.process_thread, self.preview_thread) if thread is not None]
         self.stop_event.set()
         if self.preview_bus is not None:
             self.preview_bus.close()
         if self.detection_bus is not None:
             self.detection_bus.close()
+        current = threading.current_thread()
+        alive_after_join: list[str] = []
+        for thread in threads:
+            if thread is current:
+                continue
+            thread.join(timeout=self.thread_join_timeout_s)
+            if thread.is_alive():
+                alive_after_join.append(thread.name)
         self.capture_thread = None
         self.process_thread = None
         self.preview_thread = None
@@ -625,6 +635,9 @@ class MonitorEngine:
             self.status["first_detection_ready"] = False
             self.status["playback_paused"] = False
             self.status["source_ended"] = False
+            self.status["stop_threads_pending"] = alive_after_join
+            if alive_after_join:
+                self.status["warning"] = "worker_threads_did_not_stop"
             self.condition.notify_all()
 
     def control_run(self, run_id: int, action: str, **payload: Any) -> dict[str, Any]:
