@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -68,6 +69,7 @@ class PipelineBundle:
     backend: str
     artifact_path: str
     config: dict[str, Any]
+    warmup_error: str = ""
 
 
 class PipelineCache:
@@ -119,18 +121,22 @@ class PipelineCache:
                     raise RuntimeError(f"{exc}\n{missing_artifact_message(config, self.root)}") from exc
             pipeline = VideoDefensePipeline(backend, config=config)
             warmup_frames = int(getattr(pipeline, "warmup_frames", 0) or 0)
+            warmup_error = ""
             try:
                 pipeline.warmup(warmup_frames)
                 pipeline.reset()
-            except Exception:
+            except Exception as exc:
                 # Warmup is an optimization, not a correctness requirement. The
                 # actual inference error will still surface during processing.
+                warmup_error = f"{type(exc).__name__}: {exc}"
+                traceback.print_exc()
                 pipeline.reset()
             bundle = PipelineBundle(
                 pipeline=pipeline,
                 backend=str(getattr(backend, "backend", "unknown")),
                 artifact_path=str(getattr(backend, "artifact_path", "")),
                 config=config,
+                warmup_error=warmup_error,
             )
             self._bundle = bundle
             self._key = key
