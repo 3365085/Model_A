@@ -16,6 +16,8 @@ from defense.pipelines.video_defense_pipeline import VideoDefensePipeline
 from .artifacts import missing_artifact_message
 from .config import load_runtime_config, normalize_custom_model_options, project_root
 
+EMPTY_BACKEND_PROFILES = frozenset({"empty_smoke"})
+
 
 def configure_runtime_threads() -> None:
     """Keep OpenCV/BLAS/PyTorch from creating CPU thread storms."""
@@ -61,6 +63,10 @@ class EmptyDetectorBackend:
             inference_ms=0.0,
             raw_result=None,
         )
+
+
+def allow_empty_backend_for_profile(profile: str) -> bool:
+    return str(profile or "default") in EMPTY_BACKEND_PROFILES
 
 
 @dataclass(slots=True)
@@ -112,7 +118,12 @@ class PipelineCache:
                 custom_model=normalized_custom,
             )
             runtime_config = config.get("runtime", {}) if isinstance(config.get("runtime"), dict) else {}
-            if runtime_config.get("allow_empty_backend", False):
+            allow_empty_backend = bool(runtime_config.get("allow_empty_backend", False))
+            if allow_empty_backend and not allow_empty_backend_for_profile(str(profile or "default")):
+                raise RuntimeError(
+                    f"runtime.allow_empty_backend is only allowed for profiles: {', '.join(sorted(EMPTY_BACKEND_PROFILES))}"
+                )
+            if allow_empty_backend:
                 backend = EmptyDetectorBackend()
             else:
                 try:

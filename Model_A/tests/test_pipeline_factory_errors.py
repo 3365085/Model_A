@@ -54,3 +54,19 @@ def test_pipeline_cache_exposes_warmup_failure(monkeypatch, tmp_path: Path) -> N
     assert bundle.backend == "dummy"
     assert bundle.warmup_error == "RuntimeError: warmup exploded"
     assert bundle.pipeline.reset_count == 1
+
+
+def test_empty_backend_is_rejected_outside_empty_profile(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        pipeline_factory,
+        "load_runtime_config",
+        lambda **kwargs: {"runtime": {"allow_empty_backend": True}, "inference": {"backend": "onnx"}},
+    )
+
+    try:
+        pipeline_factory.PipelineCache(root=tmp_path).get(profile="desktop_rtx")
+    except RuntimeError as exc:
+        assert "allow_empty_backend" in str(exc)
+        assert "empty_smoke" in str(exc)
+    else:
+        raise AssertionError("empty backend should be rejected outside empty_smoke")
