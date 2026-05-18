@@ -2,7 +2,22 @@ from __future__ import annotations
 
 import numpy as np
 
-from defense.runtime.evidence import EvidenceSession
+from defense.runtime.evidence import EvidenceSession, default_evidence_root
+
+
+def test_default_evidence_root_is_outside_source_tree(monkeypatch) -> None:
+    monkeypatch.delenv("MODULE_A_EVIDENCE_ROOT", raising=False)
+
+    root = default_evidence_root()
+
+    assert root.parts[-3:] == ("runtime", "evidence", "monitor")
+    assert "src" not in root.parts
+
+
+def test_default_evidence_root_uses_environment_override(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("MODULE_A_EVIDENCE_ROOT", str(tmp_path))
+
+    assert default_evidence_root() == tmp_path
 
 
 def test_a3b_evidence_finalize_exports_ui_compatibility_fields(tmp_path) -> None:
