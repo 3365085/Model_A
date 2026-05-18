@@ -494,6 +494,7 @@ class MonitorEngine:
                             "initializing": False,
                             "detector_ready": True,
                             "init_ms": init_ms,
+                            "warmup_error": preload_bundle.warmup_error,
                             "preview_mode": "mp4_clock_prepare" if source_type == "file" else "detector_ready_wait_first_frame",
                         }
                     )
