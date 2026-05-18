@@ -1,9 +1,9 @@
 # Testing
 
-From the repository root, the Pixi smoke task compiles the package and runs pytest:
+From the workspace root, the Pixi smoke task compiles the package and runs pytest with the shared `D:\security_project_d\.pixi` environment:
 
 ```powershell
-cd D:\security_project_d\Model_A
+cd D:\security_project_d
 pixi run smoke
 ```
 
