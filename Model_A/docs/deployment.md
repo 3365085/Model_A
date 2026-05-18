@@ -4,10 +4,10 @@
 
 Use the existing Pixi environment when available. The repository uses Python 3.11, FastAPI, Uvicorn, OpenCV, NumPy, PyTorch, ONNX Runtime GPU, TensorRT, and Ultralytics.
 
-Run Pixi commands from the repository root:
+Run Pixi commands from the workspace root so the environment stays in `D:\security_project_d\.pixi`:
 
 ```powershell
-cd D:\security_project_d\Model_A
+cd D:\security_project_d
 pixi run monitor
 ```
 
