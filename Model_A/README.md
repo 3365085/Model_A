@@ -7,7 +7,7 @@ Refactored runtime with a src-layout package, FastAPI Web UI, decoupled preview/
 Windows/Pixi:
 
 ```powershell
-cd D:\security_project_d
+cd D:\security_project_d\Model_A
 pixi run monitor
 ```
 
@@ -20,6 +20,12 @@ python -m defense.web.server --auto-port
 ```
 
 ## Tests
+
+```powershell
+pixi run smoke
+```
+
+Or with plain Python from the package root:
 
 ```powershell
 $env:PYTHONPATH = "src"
