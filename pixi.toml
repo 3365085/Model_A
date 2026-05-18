@@ -17,10 +17,14 @@ smoke = "cmd /C \"set PYTHONPATH=src&& python -m compileall -q src tools tests &
 python = "3.11.*"
 pip = "*"
 numpy = ">=1.26,<2"
-libopencv = ">=4.6.0,<5"
 fastapi = ">=0.111"
 uvicorn = ">=0.30"
 cuda-nvcc = "12.8.*"
 cuda-libraries-dev = "12.8.*"
 pytest = ">=8"
 pyyaml = ">=6"
+
+[pypi-dependencies]
+opencv-python = ">=4.9"
+torch = ">=2.5"
+torchvision = "*"
