@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,7 +14,12 @@ import numpy as np
 from defense.visualization import draw_hud, draw_ppe_hud
 
 
-DEFAULT_EVIDENCE_ROOT = Path(__file__).resolve().parents[2] / "异常记录" / "监控台"
+DEFAULT_EVIDENCE_ROOT = Path(__file__).resolve().parents[3] / "runtime" / "evidence" / "monitor"
+
+
+def default_evidence_root() -> Path:
+    override = os.environ.get("MODULE_A_EVIDENCE_ROOT")
+    return Path(override).expanduser() if override else DEFAULT_EVIDENCE_ROOT
 
 
 def safe_path_part(text: str, fallback: str = "source", max_len: int = 80) -> str:
@@ -73,7 +79,7 @@ class EvidenceSession:
         self.source_type = str(source_type)
         self.source = str(source)
         self.profile = str(profile)
-        self.root = Path(root) if root else DEFAULT_EVIDENCE_ROOT
+        self.root = Path(root) if root else default_evidence_root()
         self.pre_frames = max(0, int(pre_frames))
         self.post_frames = max(0, int(post_frames))
         self.sample_every = max(1, int(sample_every))
