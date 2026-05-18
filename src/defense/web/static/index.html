@@ -735,6 +735,8 @@
     let lastOverlaySeq = 0;
     let seekControlInFlight = false;
     let lastControlRunId = 0;
+    let refreshTimer = null;
+    const refreshIntervals = { running: 300, idle: 1200, error: 2000 };
     function toggleSection(headerEl) {
       headerEl.classList.toggle("collapsed");
       const content = headerEl.nextElementSibling;
@@ -1447,9 +1449,11 @@
     };
 
     async function refresh() {
+      let nextRefreshMs = refreshIntervals.idle;
       try {
         const data = await api("/api/status");
         const status = data.status;
+        nextRefreshMs = status.running ? refreshIntervals.running : refreshIntervals.idle;
         const pill = $("statePill");
         const [title, text, stateClass] = stateText(status);
         pill.textContent = title;
@@ -1569,10 +1573,17 @@
         `;
         }).join("") || '<div class="empty"><strong>暂无 A3b 警告记录</strong><div class="hint">该区域仅展示 A3b 相关警告。</div></div>';      } catch (err) {
         setError(err.message);
+        nextRefreshMs = refreshIntervals.error;
+      } finally {
+        scheduleRefresh(nextRefreshMs);
       }
     }
 
-    setInterval(refresh, 200);
+    function scheduleRefresh(delayMs) {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(refresh, delayMs);
+    }
+
     loadLastPaths();
     updateSourceControls();
         showEmpty("等待输入源", "选择 MP4、RTSP 或摄像头后开始检测。告警会在画面上用红框标出。");

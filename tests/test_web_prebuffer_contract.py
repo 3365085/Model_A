@@ -44,3 +44,10 @@ def test_camera_source_uses_camera_selector_value() -> None:
     html = HTML.read_text(encoding="utf-8")
     assert 'return $("cameraSelect").value || "0";' in html
     assert 'return $("cameraSelect").value || $("sourceValue").value || "0";' not in html
+
+
+def test_status_refresh_uses_adaptive_timeout() -> None:
+    html = HTML.read_text(encoding="utf-8")
+    assert "setInterval(refresh, 200)" not in html
+    assert "refreshIntervals" in html
+    assert "scheduleRefresh(nextRefreshMs)" in html
