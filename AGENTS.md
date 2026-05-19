@@ -28,10 +28,17 @@ Scope: entire repository.
 ## Change discipline
 
 - Prefer small, categorized commits that can be reverted independently.
+- Write every commit message in Chinese, with a concise description of the change category and purpose.
 - Do not move files or functions unless the ownership boundary is clearly wrong.
 - Do not introduce a new framework, package root, web stack, or build system without explicit architecture work.
 - Keep compatibility for public Web API paths and existing detection/status field names.
 - When fixing runtime bugs, address the root cause and add a focused regression test when practical.
+
+## Local commands
+
+- Double-click `start_web.bat` from the repository root to start the Web service through the shared Pixi GPU workspace and open the browser.
+- Double-click `stop_web.bat` from the repository root to stop the current Web service and free port 7860.
+- Command-line equivalent: run `pixi run monitor-open-external` or `pixi run monitor` from `D:\security_project_d`.
 
 ## Generated files
 
