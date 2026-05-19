@@ -17,7 +17,7 @@ Scope: entire repository.
 
 ## Ownership boundaries
 
-- The Pixi workspace lives one level above this repository at `D:\security_project_d`; use that workspace so the environment stays in `D:\security_project_d\.pixi`.
+- The Git repository root and Pixi workspace are `D:\security_project_d`; tracked project source lives under `Model_A/` so local materials, logs, and `.pixi` stay outside tracked source.
 - Runtime lifecycle, threads, status snapshots, and evidence writing belong in `src/defense/runtime`.
 - Web protocols, request validation, static assets, and security policy belong in `src/defense/web`.
 - Module A detection, fusion, feature extraction, and postprocessing belong in `src/defense/module_a`.
