@@ -7,7 +7,7 @@ Scope: entire repository.
 - Keep `src/defense` as the only production package root.
 - Keep `tools/` as CLI wrappers only; reusable logic belongs in `src/defense`.
 - Keep `tests/` separate from production code.
-- Keep docs in `docs/` with ASCII file names.
+- Keep general docs in `docs/` with ASCII file names; Chinese technical/algorithm records belong in `docs/技术.算法/` when requested or when the user raises such issues.
 - FastAPI is the only Web API implementation.
 - Do not add legacy HTTP handlers.
 - Preview and detection must remain decoupled.
@@ -33,6 +33,12 @@ Scope: entire repository.
 - Do not introduce a new framework, package root, web stack, or build system without explicit architecture work.
 - Keep compatibility for public Web API paths and existing detection/status field names.
 - When fixing runtime bugs, address the root cause and add a focused regression test when practical.
+
+## 技术/算法问题记录
+
+- 当用户主动提及技术问题、算法问题、检测效果疑问、性能权衡或架构取舍时，必须用中文记录到 `docs/技术.算法/`。
+- 记录应采用专业架构师视角，简洁说明问题背景、当前判断、代码链路依据、影响范围、结论和后续建议。
+- 不确定的判断必须明确标注为“待实验确认”或“未能从代码中确认”，不得把猜测写成结论。
 
 ## Local commands
 
