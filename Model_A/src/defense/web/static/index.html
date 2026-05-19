@@ -948,10 +948,55 @@
         p_adv: Number(status.p_adv || 0),
         ppe_person_count: Number(status.ppe_person_count || 0),
         ppe_helmet_count: Number(status.ppe_helmet_count || 0),
+        ppe_head_count: Number(status.ppe_head_count || 0),
         ppe_missing_helmet_count: Number(status.ppe_missing_helmet_count || 0),
         display_options: status.display_options || {},
       });
       overlayTimeline.push(record);
+    }
+
+    function latestOverlayStatusRecord() {
+      const items = Array.isArray(overlayTimeline.items) ? overlayTimeline.items : [];
+      if (!items.length) return null;
+      return items.reduce((best, item) => {
+        const bestSeq = Number(best?.overlay_seq ?? best?.seq ?? -1);
+        const itemSeq = Number(item?.overlay_seq ?? item?.seq ?? -1);
+        return itemSeq >= bestSeq ? item : best;
+      }, null);
+    }
+
+    function mergeOverlayStatusForPanel(status) {
+      const base = status || {};
+      const latest = latestOverlayStatusRecord();
+      if (!latest) return base;
+      const runId = Number(base.run_id || activePreviewRunId || 0);
+      const latestRunId = Number(latest.run_id || 0);
+      if (runId && latestRunId && latestRunId !== runId) return base;
+      const statusSeq = Number(base.overlay_seq || 0);
+      const latestSeq = Number(latest.overlay_seq || latest.seq || 0);
+      const statusFrame = Number(base.frame_idx || 0);
+      const latestFrame = Number(latest.frame_idx || 0);
+      if (latestSeq < statusSeq && latestFrame <= statusFrame) return base;
+      const merged = Object.assign({}, base, latest, {
+        run_id: runId || latestRunId,
+        running: base.source_ended ? false : (base.running || activePreviewRunId === (runId || latestRunId)),
+        source_ended: !!base.source_ended,
+        recent_events: base.recent_events || [],
+        recent_ppe_events: base.recent_ppe_events || [],
+        recent_source_auth_events: base.recent_source_auth_events || [],
+        source_duration_s: base.source_duration_s || latest.source_duration_s || 0,
+        source_frame_count: base.source_frame_count || latest.source_frame_count || 0,
+        preview_seq: base.preview_seq || 0,
+        preview_fps: base.preview_fps || 0,
+        display_options: base.display_options || latest.display_options || {},
+        feature_options: base.feature_options || {},
+        custom_model: base.custom_model || {},
+        error: base.error || "",
+      });
+      if (!Array.isArray(merged.branch_cards) || !merged.branch_cards.length) {
+        merged.branch_cards = base.branch_cards || [];
+      }
+      return merged;
     }
 
     function selectOverlayRecord(videoTime) {
@@ -1492,7 +1537,8 @@
       let nextRefreshMs = refreshIntervals.idle;
       try {
         const data = await api("/api/status");
-        const status = data.status;
+        let status = data.status || {};
+        status = mergeOverlayStatusForPanel(status);
         nextRefreshMs = status.running ? refreshIntervals.running : refreshIntervals.idle;
         const pill = $("statePill");
         const [title, text, stateClass] = stateText(status);

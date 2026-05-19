@@ -66,3 +66,11 @@ def test_status_refresh_uses_adaptive_timeout() -> None:
     assert "setInterval(refresh, 200)" not in html
     assert "refreshIntervals" in html
     assert "scheduleRefresh(nextRefreshMs)" in html
+
+
+def test_status_panel_can_use_latest_overlay_record_as_live_fallback() -> None:
+    html = HTML.read_text(encoding="utf-8")
+    assert "function mergeOverlayStatusForPanel(status)" in html
+    assert "status = mergeOverlayStatusForPanel(status);" in html
+    assert "latestOverlayStatusRecord()" in html
+    assert "ppe_head_count: Number(status.ppe_head_count || 0)" in html
