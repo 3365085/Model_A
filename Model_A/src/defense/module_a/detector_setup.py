@@ -458,6 +458,9 @@ def initialize_detector(detector: Any, config: dict[str, Any] | None = None) -> 
         paired_temporal_motion_threshold=float(
             module_config.get("target_anchored_paired_temporal_motion_threshold", 0.18)
         ),
+        global_fallback_overexposure_threshold=float(
+            module_config.get("target_anchored_global_fallback_overexposure_threshold", 0.20)
+        ),
         natural_exposure_suppression=bool(
             module_config.get("natural_exposure_suppression_enabled", True)
         ),
