@@ -4,6 +4,10 @@ Refactored runtime with a src-layout package, FastAPI Web UI, decoupled preview/
 
 ## Start
 
+Pixi workspace root is `D:\security_project_d`. The shared GPU environment is
+`D:\security_project_d\.pixi`; do not create or use a separate
+`D:\security_project_d\Model_A\.pixi` environment for normal operation.
+
 Windows/Pixi:
 
 ```powershell
@@ -11,7 +15,9 @@ cd D:\security_project_d
 pixi run monitor
 ```
 
-Plain Python from package root:
+Plain Python from package root is only a local debugging fallback. It uses the
+currently active Python environment, so GPU libraries are not guaranteed unless
+that environment is already configured.
 
 ```powershell
 cd D:\security_project_d\Model_A
@@ -20,6 +26,8 @@ python -m defense.web.server --auto-port
 ```
 
 ## Tests
+
+Preferred path:
 
 ```powershell
 cd D:\security_project_d
