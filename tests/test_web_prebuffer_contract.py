@@ -15,7 +15,8 @@ def test_frontend_does_not_call_browser_frame_detection() -> None:
 
 def test_mp4_uses_backend_preview_stream_not_native_video_pipeline() -> None:
     html = HTML.read_text(encoding="utf-8")
-    assert 'startMjpegPreview(body);' in html
+    assert 'startMjpegPreview(status);' in html
+    assert '/api/runs/${runId}/preview.mjpg' in html
     assert 'function updateStartButtonState(status)' in html
     assert 'id="playPauseBtn"' in html
     assert 'id="seekSlider"' in html
@@ -38,6 +39,20 @@ def test_stop_still_clears_preview_and_overlay_polling() -> None:
     assert "function stopOverlayPolling()" in html
     assert "stopOverlayPolling();" in html
     assert 'await api("/api/stop", {})' in html
+    assert "activePreviewRunId = 0;" in html
+    assert 'removeAttribute("data-run-id")' in html
+
+
+def test_frontend_does_not_reference_removed_realtime_control() -> None:
+    html = HTML.read_text(encoding="utf-8")
+    assert '$("realtime")' not in html
+
+
+def test_progress_controls_are_only_shown_for_local_mp4_runs() -> None:
+    html = HTML.read_text(encoding="utf-8")
+    assert "const showProgressControls = isFile && duration > 0 && running;" in html
+    assert '$("runControls").style.display = showProgressControls ? "grid" : "none";' in html
+    assert '$("seekSlider").disabled = !running || !!status?.source_ended;' in html
 
 
 def test_camera_source_uses_camera_selector_value() -> None:
