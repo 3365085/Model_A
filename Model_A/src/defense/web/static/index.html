@@ -733,6 +733,7 @@
     let overlayPollStarted = false;
     let overlayPollingRunId = 0;
     let lastOverlaySeq = 0;
+    let activePreviewRunId = 0;
     let seekControlInFlight = false;
     let lastControlRunId = 0;
     let refreshTimer = null;
@@ -864,30 +865,46 @@
       stopOverlayPolling();
       resetOverlayTimeline();
       previewStarting = false;
+      activePreviewRunId = 0;
       $("stream").removeAttribute("src");
+      $("stream").removeAttribute("data-run-id");
       $("stream").style.display = "none";
       $("overlayCanvas").classList.remove("activePreview");
       const ctx = $("overlayCanvas").getContext("2d");
       ctx.clearRect(0, 0, $("overlayCanvas").width, $("overlayCanvas").height);
       resetStageAspect();
     }
-    function startMjpegPreview(body) {
+    function startMjpegPreview(previewStatus) {
       resetOverlayTimeline();
       streamNonce += 1;
+      const runId = Number(previewStatus?.run_id || lastOverlayStatus?.run_id || 0);
+      activePreviewRunId = runId;
       $("empty").style.display = "none";
       $("overlayCanvas").classList.remove("activePreview");
-      const status = lastOverlayStatus || {};
-      if (status.preview_width && status.preview_height) {
-        setStageAspect(Number(status.preview_width), Number(status.preview_height));
+      const sizingStatus = previewStatus || lastOverlayStatus || {};
+      if (sizingStatus.preview_width && sizingStatus.preview_height) {
+        setStageAspect(Number(sizingStatus.preview_width), Number(sizingStatus.preview_height));
       } else {
         resetStageAspect();
       }
-      $("stream").src = "/stream.mjpg?nonce=" + streamNonce;
+      const streamPath = runId
+        ? `/api/runs/${runId}/preview.mjpg?nonce=${streamNonce}`
+        : `/stream.mjpg?nonce=${streamNonce}`;
+      $("stream").setAttribute("data-run-id", String(runId || ""));
+      $("stream").src = streamPath;
       $("stream").style.display = "block";
+      if (runId) startOverlayPolling(runId);
     }
 
     function ensurePreview(status) {
-      const streamActive = !!$("stream").getAttribute("src");
+      const runId = Number(status?.run_id || 0);
+      const streamRunId = Number($("stream").getAttribute("data-run-id") || activePreviewRunId || 0);
+      const streamActive = !!$("stream").getAttribute("src") && (!runId || !streamRunId || streamRunId === runId);
+      if ($("stream").getAttribute("src") && runId && streamRunId && streamRunId !== runId) {
+        $("stream").removeAttribute("src");
+        $("stream").removeAttribute("data-run-id");
+        activePreviewRunId = 0;
+      }
       if (!(status.running || (status.frame_idx || 0) > 0 || status.source_ended)) return;
 
       if (status.running && !status.ready_for_preview) {
@@ -898,7 +915,7 @@
       }
 
       if (!streamActive && (status.running || status.ready_for_preview)) {
-        startMjpegPreview({source_type: status.source_type || "file", realtime: false});
+        startMjpegPreview(status);
       }
     }
 
@@ -1123,7 +1140,9 @@
     function updateStartButtonState(status) {
       if (startInFlight) return;
       const button = $("startBtn");
-      const streamActive = !!$("stream").getAttribute("src");
+      const runId = Number(status?.run_id || 0);
+      const streamRunId = Number($("stream").getAttribute("data-run-id") || activePreviewRunId || 0);
+      const streamActive = !!$("stream").getAttribute("src") && (!runId || !streamRunId || streamRunId === runId);
       const running = !!status?.running;
       if (running && streamActive) {
         button.disabled = true;
@@ -1153,12 +1172,25 @@
       const sourceTime = status?.source_ended && duration > 0
         ? Math.min(Math.max(rawSourceTime, 0), duration)
         : rawSourceTime;
-      $("runControls").style.opacity = running || duration > 0 ? "1" : ".62";
+      const showProgressControls = isFile && duration > 0 && running;
+      $("runControls").style.display = showProgressControls ? "grid" : "none";
+      if (!showProgressControls) {
+        $("playPauseBtn").disabled = true;
+        $("speedSelect").disabled = true;
+        $("seekSlider").disabled = true;
+        $("seekSlider").max = "0";
+        if (!seekControlInFlight) $("seekSlider").value = "0";
+        $("clockText").textContent = "0:00 / 0:00";
+        $("pipelineText").textContent = running ? (status?.detector_pipeline_mode || "running") : "idle";
+        lastControlRunId = Number(status?.run_id || lastControlRunId || 0);
+        return;
+      }
+      $("runControls").style.opacity = "1";
       $("playPauseBtn").disabled = !running || !isFile;
       $("playPauseBtn").textContent = status?.playback_paused ? "继续" : "暂停";
       $("speedSelect").disabled = !running || !isFile;
       $("speedSelect").value = String(Number(status?.playback_speed || 1));
-      $("seekSlider").disabled = !isFile || duration <= 0 || !!status?.source_ended;
+      $("seekSlider").disabled = !running || !!status?.source_ended;
       $("seekSlider").max = duration > 0 ? String(duration) : "0";
       if (!seekControlInFlight) $("seekSlider").value = String(Math.min(sourceTime, duration || sourceTime));
       $("clockText").textContent = `${fmtSeconds(sourceTime)} / ${fmtSeconds(duration)}`;
@@ -1214,8 +1246,6 @@
       $("browseBtn").style.display = type === "file" ? "block" : "none";
       $("testSourceBtn").style.display = type === "rtsp" ? "block" : "none";
       $("pathRow").className = type === "file" || type === "rtsp" ? "fieldRow" : "fieldRow single";
-      $("realtime").checked = true;
-      $("realtime").disabled = true;
       $("realtimeText").textContent = type === "file"
         ? "MP4预览固定为 1.0x；检测由后端输入源异步处理。"
         : "实时流使用后端预览流；检测慢时只丢旧检测帧。";
@@ -1391,11 +1421,12 @@
       startInFlight = true;
       const oldText = $("startBtn").textContent;
       $("startBtn").disabled = true;
-      $("startBtn").textContent = "鍒濆鍖栦腑";
+      $("startBtn").textContent = "初始化中";
       try {
         const current = await api("/api/status");
         const currentStatus = current.status || {};
         if (currentStatus.running) {
+          lastOverlayStatus = currentStatus;
           ensurePreview(currentStatus);
           updateStartButtonState(currentStatus);
           return;
@@ -1416,7 +1447,11 @@
         saveLastPaths();
         const data = await api("/api/start", body);
         const status = data.status || {};
-        startMjpegPreview(body);
+        lastOverlayStatus = status;
+        updateRunControls(status);
+        updateStartButtonState(status);
+        startMjpegPreview(status);
+        scheduleRefresh(0);
       } catch (err) {
         setError(err.message);
         showEmpty("启动失败", err.message || "检测启动失败，请检查输入源和模型。");
@@ -1438,9 +1473,14 @@
       try {
         stopOverlayPolling();
         previewStarting = false;
-        await api("/api/stop", {});
+        const data = await api("/api/stop", {});
+        const stoppedStatus = data.status || {};
         hideAllPreview();
+        lastOverlayStatus = stoppedStatus;
+        updateRunControls(stoppedStatus);
+        updateStartButtonState(stoppedStatus);
         showEmpty("等待输入源", "选择 MP4、RTSP 或摄像头后开始检测。告警会在画面上用红框标出。");
+        scheduleRefresh(0);
       } catch (err) {
         setError(err.message);
       } finally {
