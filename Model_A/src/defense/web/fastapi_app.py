@@ -24,6 +24,14 @@ def _json(data: Any, status_code: int = 200) -> JSONResponse:
     )
 
 
+def _no_cache_headers() -> dict[str, str]:
+    return {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
+
 def _engine(app: FastAPI) -> MonitorEngine:
     return app.state.engine
 
@@ -52,7 +60,7 @@ def create_app(
     @app.get("/")
     @app.get("/index.html")
     async def index() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html", media_type="text/html; charset=utf-8")
+        return FileResponse(STATIC_DIR / "index.html", media_type="text/html; charset=utf-8", headers=_no_cache_headers())
 
     @app.get("/static/{path:path}")
     async def static_file(path: str) -> FileResponse:
@@ -65,7 +73,7 @@ def create_app(
         media_type = "application/javascript" if target.suffix == ".js" else None
         if target.suffix == ".css":
             media_type = "text/css"
-        return FileResponse(target, media_type=media_type)
+        return FileResponse(target, media_type=media_type, headers=_no_cache_headers())
 
     @app.get("/api/status")
     @app.get("/api/runs/current")
