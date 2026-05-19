@@ -2,7 +2,7 @@
 
 ## Environment
 
-Use the existing Pixi environment when available. The repository uses Python 3.11, FastAPI, Uvicorn, OpenCV, NumPy, PyTorch, ONNX Runtime GPU, TensorRT, and Ultralytics.
+Use the existing Pixi workspace at `D:\security_project_d`. The runtime uses Python 3.11, FastAPI, Uvicorn, OpenCV, NumPy, PyTorch, ONNX Runtime GPU, TensorRT, and Ultralytics.
 
 Run Pixi commands from the workspace root so the environment stays in `D:\security_project_d\.pixi`:
 
@@ -11,13 +11,14 @@ cd D:\security_project_d
 pixi run monitor
 ```
 
+Do not run Pixi from `D:\security_project_d\Model_A` for deployment. That creates a separate environment and can hide the GPU-enabled PyTorch installation from the monitor.
+
 ## GPU check
 
 ```powershell
+cd D:\security_project_d
 nvidia-smi
 pixi run verify-ai
-$env:PYTHONPATH = "src"
-python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)"
 ```
 
 ## Profiles
