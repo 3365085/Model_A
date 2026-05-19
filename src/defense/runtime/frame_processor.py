@@ -9,11 +9,11 @@ import cv2
 import numpy as np
 
 from defense.module_a.postprocess import PPEDisplayTracker, merge_roi_detections
-from defense.module_a.ppe_postprocess import summarize_ppe_from_detections
 from defense.visualization import render_preview
 
 from .a3b_soft_trigger import A3BSoftTriggerState
 from .pipeline_factory import PipelineBundle
+from .ppe_business import evaluate_ppe_business
 from .ppe_state import SafetyHelmetState
 
 
@@ -183,13 +183,15 @@ class FrameProcessor:
                     redetect_count = len(roi_results)
                 redetect_ms = (time.perf_counter() - redetect_started) * 1000.0
 
-        ppe_raw = summarize_ppe_from_detections(detections, frame_shape=frame_640.shape[:2])
-        ppe = self.ppe_state.update(ppe_raw)
-        ppe_tracks = (
-            self.ppe_tracker.update(detections, ppe, frame_shape=frame_640.shape[:2])
-            if self.ppe_tracking_enabled
-            else []
+        ppe_result = evaluate_ppe_business(
+            detections,
+            frame_shape=frame_640.shape[:2],
+            ppe_state=self.ppe_state,
+            ppe_tracker=self.ppe_tracker,
+            tracking_enabled=self.ppe_tracking_enabled,
         )
+        ppe = ppe_result.ppe
+        ppe_tracks = ppe_result.tracks
         rendered = render_preview(
             frame_640,
             info=info,
