@@ -58,15 +58,16 @@ module_a:
   temporal_detector_reuse_max_gap: 1
 
   natural_exposure_suppression_enabled: true
-  natural_exposure_max_ratio: 0.18
+  natural_exposure_max_ratio: 0.40
   natural_exposure_max_light_flow: 0.35
   natural_exposure_max_motion_score: 1.01
+  target_anchored_global_fallback_overexposure_threshold: 0.50
 
   p_adv_threshold: 0.55
   p_adv_display_alpha: 0.28
   a3b_display_alpha: 0.28
   alert_window: 5
-  alert_trigger_count: 3
+  alert_trigger_count: 5
 
 runtime:
   capture_queue_size: 1

@@ -163,10 +163,19 @@ class TargetAnchoredAnalyzer:
             )
             if natural_state["suppressed"]:
                 reason_codes.append("natural_exposure_suppressed")
-            else:
+            elif (
+                natural_state["extreme"]
+                or (
+                    natural_state["ratio"] >= self.roi_overexposure_threshold
+                    and natural_state["track_support"]
+                    and natural_state["local_attack_support"]
+                )
+            ):
                 suspicious = True
                 roi_anomaly_count = n_targets
                 reason_codes.append("overexposure")
+            else:
+                reason_codes.append("weak_overexposure_suppressed")
 
         # --- A3b 翻拍/假目标（基于 YOLO ROI 的 patch-track）---
         # patch-track 本身就要求：同一 ROI 内容连续 6 帧高度相似 +
@@ -314,10 +323,16 @@ class TargetAnchoredAnalyzer:
             track_score >= self.track_drop_threshold
             or confidence_drop >= self.track_confidence_drop_threshold
         )
-        local_attack_support = (
-            light_flow_score >= self.light_flow_score_threshold
-            or light_flow_ratio >= self.natural_exposure_max_light_flow
-            or (temporal_local >= 0.55 and motion_score >= self.motion_score_threshold)
+        # Large normal subject/camera motion often creates high optical-flow
+        # and temporal scores together with auto-exposure drift. Treat that as
+        # attack support only when the target track itself is unstable.
+        local_attack_support = bool(
+            track_support
+            and (
+                light_flow_score >= self.light_flow_score_threshold
+                or light_flow_ratio >= self.natural_exposure_max_light_flow
+                or (temporal_local >= 0.55 and motion_score >= self.motion_score_threshold)
+            )
         )
         moderate_camera_exposure = (
             ratio <= self.natural_exposure_max_ratio
@@ -343,6 +358,7 @@ class TargetAnchoredAnalyzer:
             "light_flow_ratio": light_flow_ratio,
             "track_support": bool(track_support),
             "local_attack_support": bool(local_attack_support),
+            "extreme": bool(extreme),
         }
 
     def _global_extreme_anomaly(self, overexposure: dict[str, Any]) -> bool:

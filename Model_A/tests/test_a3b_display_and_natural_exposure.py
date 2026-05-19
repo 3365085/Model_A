@@ -83,11 +83,44 @@ def test_natural_exposure_does_not_trigger_without_target_anchor():
     assert "natural_exposure_suppressed" in result["reason_codes"]
 
 
+def test_natural_exposure_ignores_normal_motion_without_track_support():
+    analyzer = TargetAnchoredAnalyzer(
+        natural_exposure_max_ratio=0.40,
+        global_fallback_overexposure_threshold=0.50,
+    )
+    result = analyzer.evaluate(
+        rois=[object()],
+        overexposure={"is_glare": True, "ratio": 0.31, "underexposed_ratio": 0.0},
+        blur={"blur_score": 0.0},
+        track={"track_score": 0.0, "confidence_drop_score": 0.0},
+        temporal={"local_max": 0.62},
+        motion={"motion_score": 1.0, "light_flow_score": 0.7, "light_flow_local_anomaly_ratio": 0.8},
+        static_image={"triggered": False, "score": 0.0},
+    )
+    assert result["suspicious"] is False
+    assert "natural_exposure_suppressed" in result["reason_codes"]
+
+
+def test_weak_overexposure_with_track_jitter_does_not_alert():
+    analyzer = TargetAnchoredAnalyzer()
+    result = analyzer.evaluate(
+        rois=[object()],
+        overexposure={"is_glare": True, "ratio": 0.07, "underexposed_ratio": 0.0},
+        blur={"blur_score": 0.0},
+        track={"track_score": 0.5, "confidence_drop_score": 0.0},
+        temporal={"local_max": 0.36},
+        motion={"motion_score": 1.0, "light_flow_score": 0.0, "light_flow_local_anomaly_ratio": 0.30},
+        static_image={"triggered": False, "score": 0.0},
+    )
+    assert result["suspicious"] is False
+    assert "weak_overexposure_suppressed" in result["reason_codes"]
+
+
 def test_overexposure_still_triggers_with_target_anchor_support():
     analyzer = TargetAnchoredAnalyzer()
     result = analyzer.evaluate(
         rois=[object()],
-        overexposure={"is_glare": True, "ratio": 0.11, "underexposed_ratio": 0.0},
+        overexposure={"is_glare": True, "ratio": 0.16, "underexposed_ratio": 0.0},
         blur={"blur_score": 0.58},
         track={"track_score": 0.55, "confidence_drop_score": 0.0},
         temporal={"local_max": 0.60},
